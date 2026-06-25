@@ -38,8 +38,9 @@ You ◀──── reply text + attachments ──── bot
    pnpm install
    cp .env.example .env       # then edit .env
    ```
-   Set `DISCORD_TOKEN`, and set `OWNER_USER_ID` to your own Discord user ID so
-   only you can use it. (Enable Developer Mode in Discord → right-click your
+   Set `DISCORD_TOKEN`, and set `ALLOWED_USER_IDS` to a comma-separated list of
+   the Discord user IDs allowed to use it (yours, plus anyone you trust). Only
+   those users get a response. (Enable Developer Mode in Discord → right-click a
    name → *Copy User ID*.)
 5. **Run it:**
    ```bash
@@ -73,7 +74,7 @@ Effort is silently dropped for models that don't support it (e.g. Haiku).
 - `CLAUDE_PERMISSION_MODE` defaults to **`bypassPermissions`** so Claude can
   actually use its tools without an interactive prompt (the whole point of a
   remote bot). That means Claude can run commands and edit files on the machine
-  hosting the bot. **Keep `OWNER_USER_ID` set** and run it somewhere you trust.
+  hosting the bot. **Keep `ALLOWED_USER_IDS` set** and run it somewhere you trust.
 - Only one Claude run happens at a time (single instance dir); extra messages
   queue up.
 - Replies over 2000 chars are split; very long ones are sent as `response.md`.

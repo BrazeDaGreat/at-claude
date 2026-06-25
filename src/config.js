@@ -20,7 +20,14 @@ export const RETURN_DIR = path.join(ROOT, 'instance-return');
 
 export const config = {
   token: process.env.DISCORD_TOKEN,
-  ownerUserId: (process.env.OWNER_USER_ID || '').trim(),
+  // Allowed Discord user IDs (comma-separated). Empty = anyone (not recommended).
+  // OWNER_USER_ID is still honoured for backward compatibility.
+  allowedUserIds: new Set(
+    `${process.env.ALLOWED_USER_IDS || ''},${process.env.OWNER_USER_ID || ''}`
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+  ),
   claudeBin: process.env.CLAUDE_BIN || 'claude',
   permissionMode: process.env.CLAUDE_PERMISSION_MODE || 'bypassPermissions',
   model: (process.env.CLAUDE_MODEL || '').trim(),

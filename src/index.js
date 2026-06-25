@@ -49,8 +49,8 @@ client.on('messageCreate', (message) => {
   const mentioned = client.user && message.mentions.has(client.user.id);
   if (!isDM && !mentioned) return;
 
-  if (config.ownerUserId && message.author.id !== config.ownerUserId) {
-    return; // silently ignore everyone except the owner
+  if (config.allowedUserIds.size > 0 && !config.allowedUserIds.has(message.author.id)) {
+    return; // silently ignore anyone not on the allow-list
   }
 
   enqueue(message);
