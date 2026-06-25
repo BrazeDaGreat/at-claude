@@ -1,0 +1,14 @@
+node_modules/
+.env
+
+# Runtime working dirs — keep the structure, ignore the transient contents
+instance/files/*
+instance-return/*
+!instance/files/.gitkeep
+!instance-return/.gitkeep
+
+# Claude's own state inside the instance
+instance/.claude/projects/
+instance/.claude/todos/
+instance/.claude/statsig/
+instance/.claude/shell-snapshots/

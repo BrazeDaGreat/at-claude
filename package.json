@@ -1,0 +1,19 @@
+{
+  "name": "at-claude",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Personal Discord bot for using `claude -p` from anywhere",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
