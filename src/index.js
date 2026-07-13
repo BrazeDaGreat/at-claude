@@ -82,8 +82,8 @@ async function drain() {
 async function handleMessage(message) {
   let prompt = stripMention(message.content).trim();
 
-  // Slash-style control commands (only when they're the whole message).
-  if (prompt.startsWith('/')) {
+  // c!-prefixed control commands (only when they're the whole message).
+  if (prompt.startsWith('c!')) {
     const handled = await handleCommand(message, prompt);
     if (handled) return;
   }
@@ -135,11 +135,11 @@ async function handleMessage(message) {
 }
 
 /**
- * Handle a `/command`. Returns true if the message was a command (and is now
+ * Handle a `c!` command. Returns true if the message was a command (and is now
  * fully dealt with), false if it should fall through to Claude as a prompt.
  */
 async function handleCommand(message, raw) {
-  const [cmd, ...rest] = raw.slice(1).split(/\s+/);
+  const [cmd, ...rest] = raw.slice(2).split(/\s+/);
   const arg = rest.join(' ').trim();
   const cid = message.channelId;
 
@@ -198,10 +198,10 @@ async function handleCommand(message, raw) {
     case 'help':
       await message.reply(
         `**Commands**\n` +
-          `- \`/model <alias|id>\` — set model (e.g. \`opus\`, \`sonnet\`, \`claude-opus-4-8\`). No arg = reset.\n` +
-          `- \`/effort <${EFFORT_LEVELS.join('|')}>\` — set reasoning effort (Sonnet/Opus). No arg = reset.\n` +
-          `- \`/config\` — show current settings.\n` +
-          `- \`/reset\` — start a fresh conversation.\n` +
+          `- \`c!model <alias|id>\` — set model (e.g. \`opus\`, \`sonnet\`, \`claude-opus-4-8\`). No arg = reset.\n` +
+          `- \`c!effort <${EFFORT_LEVELS.join('|')}>\` — set reasoning effort (Sonnet/Opus). No arg = reset.\n` +
+          `- \`c!config\` — show current settings.\n` +
+          `- \`c!reset\` — start a fresh conversation.\n` +
           `Otherwise just talk to me, and attach files if you like.`,
       );
       return true;
