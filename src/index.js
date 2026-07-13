@@ -13,6 +13,7 @@ import {
 
 import { config, FILES_DIR, RETURN_DIR } from './config.js';
 import { runClaude, EFFORT_LEVELS, modelSupportsEffort } from './claudeRunner.js';
+import { startAutoText, stopAutoText } from './auto-text.js';
 
 const DISCORD_FILE_LIMIT = 8 * 1024 * 1024; // 8 MB, the default (non-boosted) upload cap
 const MAX_MESSAGE_LEN = 2000;
@@ -38,8 +39,13 @@ const client = new Client({
   partials: [Partials.Channel], // needed to receive DMs
 });
 
-client.once('clientReady', (c) => {
+client.once('clientReady', async (c) => {
   console.log(`Logged in as ${c.user.tag}. Mention @${c.user.username} to talk to Claude.`);
+  try {
+    await startAutoText(client, { runExclusive: enqueueJob });
+  } catch (err) {
+    console.error('Failed to start auto-text scheduler:', err);
+  }
 });
 
 client.on('messageCreate', (message) => {
@@ -57,22 +63,43 @@ client.on('messageCreate', (message) => {
 });
 
 function enqueue(message) {
-  queue.push(message);
-  drain();
+  enqueueJob(
+    () => handleMessage(message),
+    async (err) => {
+      console.error('Unhandled error:', err);
+      try {
+        await message.reply(`⚠️ Something broke: ${truncate(String(err.message || err), 1800)}`);
+      } catch {}
+    },
+  ).catch(() => {});
+}
+
+function enqueueJob(run, onError = null) {
+  return new Promise((resolve, reject) => {
+    queue.push({ run, onError, resolve, reject });
+    drain();
+  });
 }
 
 async function drain() {
   if (busy) return;
-  const message = queue.shift();
-  if (!message) return;
+  const job = queue.shift();
+  if (!job) return;
   busy = true;
   try {
-    await handleMessage(message);
+    const result = await job.run();
+    job.resolve(result);
   } catch (err) {
-    console.error('Unhandled error:', err);
-    try {
-      await message.reply(`⚠️ Something broke: ${truncate(String(err.message || err), 1800)}`);
-    } catch {}
+    if (job.onError) {
+      try {
+        await job.onError(err);
+      } catch (handlerErr) {
+        console.error('Error handler failed:', handlerErr);
+      }
+    } else {
+      console.error('Unhandled queued job error:', err);
+    }
+    job.reject(err);
   } finally {
     busy = false;
     drain();
@@ -336,4 +363,15 @@ async function download(url, dest) {
 
 process.on('unhandledRejection', (err) => console.error('unhandledRejection', err));
 
+function shutdown() {
+  stopAutoText();
+  client.destroy();
+  process.exit(0);
+}
+
+process.once('SIGINT', shutdown);
+process.once('SIGTERM', shutdown);
+
 client.login(config.token);
+
+
