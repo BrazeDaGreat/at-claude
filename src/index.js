@@ -48,14 +48,20 @@ client.once('clientReady', async (c) => {
   }
 });
 
+// This bot is allowed through the bot filter, and may trigger by naming AtClaude.
+const ALLOWED_BOT_ID = '1523997466121211905';
+
 client.on('messageCreate', (message) => {
-  if (message.author.bot) return;
+  const isAllowedBot = message.author.id === ALLOWED_BOT_ID;
+  if (message.author.bot && !isAllowedBot) return;
 
   const isDM = !message.guild;
   const mentioned = client.user && message.mentions.has(client.user.id);
-  if (!isDM && !mentioned) return;
+  // The allowed bot can also trigger by saying "AtClaude" without a real mention.
+  const namedAtClaude = isAllowedBot && /\batclaude\b/i.test(message.content);
+  if (!isDM && !mentioned && !namedAtClaude) return;
 
-  if (config.allowedUserIds.size > 0 && !config.allowedUserIds.has(message.author.id)) {
+  if (!isAllowedBot && config.allowedUserIds.size > 0 && !config.allowedUserIds.has(message.author.id)) {
     return; // silently ignore anyone not on the allow-list
   }
 
