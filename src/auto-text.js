@@ -24,7 +24,8 @@ const RUN_ON_START = true;
 const AUTOMATED_MESSAGES = [
   {
     name: "default-check-in",
-    times: ["05:00", "10:02", "15:04", "20:06"],
+    // 5 AM, 10:20 AM, 3:40 PM, 9 PM
+    times: ["05:00", "10:20", "15:40", "21:00"],
     prompt: "Ping, are you up and running?",
   },
 ];
