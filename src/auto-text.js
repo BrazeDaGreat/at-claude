@@ -8,16 +8,16 @@ import { runClaude } from "./claudeRunner.js";
 const DISCORD_CHANNEL_ID = "1222593427288363040";
 
 // Model used for these automated messages. Leave empty to use the Claude CLI default.
-const CLAUDE_MODEL = "claude-haiku-4.5";
+const CLAUDE_MODEL = "claude-haiku-4-5";
 
 // Optional reasoning effort for Sonnet/Opus models: low, medium, high, xhigh, max.
 const CLAUDE_EFFORT = "";
 
 // Whether to keep one continuous Claude conversation across automated messages.
-const PERSIST_SESSION = true;
+const PERSIST_SESSION = false;
 
 // Whether each automation should run once immediately when the bot starts.
-const RUN_ON_START = false;
+const RUN_ON_START = true;
 
 // Messages to send to Claude. Times use the bot machine's local timezone.
 // Use 24-hour HH:mm format, e.g. "05:00" or "10:05".
