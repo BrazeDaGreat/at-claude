@@ -5,7 +5,7 @@ import { runClaude } from "./claudeRunner.js";
 // ---------------- configuration ----------------
 
 // Discord channel that receives Claude's automated responses.
-const DISCORD_CHANNEL_ID = "1222593427288363040";
+const DISCORD_CHANNEL_ID = "1476541055288606733";
 
 // Model used for these automated messages. Leave empty to use the Claude CLI default.
 const CLAUDE_MODEL = "claude-haiku-4-5";
@@ -19,6 +19,16 @@ const PERSIST_SESSION = false;
 // Whether each automation should run once immediately when the bot starts.
 const RUN_ON_START = true;
 
+function createPrompt() {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const length = Math.floor(Math.random() * 5) + 4;
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `Repeat this exact text: ${result}`;
+}
+
 // Messages to send to Claude. Times use the bot machine's local timezone.
 // Use 24-hour HH:mm format, e.g. "05:00" or "10:05".
 const AUTOMATED_MESSAGES = [
@@ -26,7 +36,7 @@ const AUTOMATED_MESSAGES = [
     name: "default-check-in",
     // 5 AM, 10:20 AM, 3:40 PM, 9 PM
     times: ["05:00", "10:20", "15:40", "21:00"],
-    prompt: "Ping, are you up and running?",
+    // prompt is generated dynamically via createPrompt()
   },
 ];
 
@@ -151,7 +161,7 @@ async function sendAutomatedMessage(channel, item) {
   console.log(`[${item.name}] sending prompt to Claude...`);
 
   const result = await runClaude(
-    item.prompt,
+    createPrompt(),
     PERSIST_SESSION ? sessionId : null,
     {
       model: CLAUDE_MODEL,
@@ -204,9 +214,6 @@ function validateAutomatedMessage(item) {
   }
   for (const time of item.times) {
     msUntilNextTime(time);
-  }
-  if (!item.prompt || typeof item.prompt !== "string") {
-    throw new Error(`[${item.name}] prompt must be a non-empty string.`);
   }
 }
 
