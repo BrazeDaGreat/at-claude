@@ -20,12 +20,27 @@ const PERSIST_SESSION = false;
 const RUN_ON_START = true;
 
 function createPrompt() {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  const length = Math.floor(Math.random() * 5) + 4;
-  let result = "";
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  const digits = "0123456789";
+  const allChars = letters + digits;
+
+  const getRandomString = (chars, len) => {
+    let str = "";
+    for (let i = 0; i < len; i++) {
+      str += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return str;
+  };
+
+  const charLen = Math.floor(Math.random() * 2) + 4;
+  const numLen = Math.floor(Math.random() * 2) + 4;
+  const randLen = Math.floor(Math.random() * 2) + 4;
+
+  const part1 = getRandomString(letters, charLen);
+  const part2 = getRandomString(digits, numLen);
+  const part3 = getRandomString(allChars, randLen);
+
+  const result = part1 + part2 + part3;
   return `Repeat this exact text: ${result}`;
 }
 
@@ -34,9 +49,8 @@ function createPrompt() {
 const AUTOMATED_MESSAGES = [
   {
     name: "default-check-in",
-    // 5 AM, 10:20 AM, 3:40 PM, 9 PM
-    times: ["05:00", "10:20", "15:40", "21:00"],
-    // prompt is generated dynamically via createPrompt()
+    // 5 AM, 10:04 AM, 3:08 PM, 8:12 PM
+    times: ["05:00", "10:04", "15:08", "20:12"],
   },
 ];
 
