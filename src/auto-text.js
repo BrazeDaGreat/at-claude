@@ -49,8 +49,8 @@ function createPrompt() {
 const AUTOMATED_MESSAGES = [
   {
     name: "default-check-in",
-    // 5 AM, 10:10 AM, 3:20 PM, 8:30 PM
-    times: ["05:00", "10:10", "15:20", "20:30"],
+    // 7:00 AM, 12:10 PM, 5:20 PM, 10:30 PM
+    times: ["07:00", "12:10", "17:20", "22:30"],
   },
 ];
 
