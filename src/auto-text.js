@@ -57,6 +57,7 @@ const AUTOMATED_MESSAGES = [
 // Discord's normal message cap is 2000 chars. Long Claude outputs become a file.
 const MAX_MESSAGE_LEN = 2000;
 const MAX_INLINE_CHUNKS = 5;
+const MAX_CONFIGURED_TIMES = 100;
 
 // ------------------------------------------------
 
@@ -64,6 +65,8 @@ let sessionId = null;
 let started = false;
 let stopped = false;
 const timeoutIds = [];
+let scheduledChannel = null;
+let scheduledRunExclusive = null;
 
 /**
  * Start automated Claude messages inside the already-running Discord bot.
@@ -95,6 +98,9 @@ export async function startAutoText(client, opts = {}) {
     );
   }
 
+  scheduledChannel = channel;
+  scheduledRunExclusive = runExclusive;
+
   for (const item of AUTOMATED_MESSAGES) {
     scheduleAutomatedMessage(channel, item, runExclusive);
   }
@@ -106,14 +112,118 @@ export async function startAutoText(client, opts = {}) {
 
 export function stopAutoText() {
   stopped = true;
-  for (const id of timeoutIds.splice(0)) {
-    clearTimeout(id);
-  }
+  clearScheduledRuns();
+  scheduledChannel = null;
+  scheduledRunExclusive = null;
   started = false;
   console.log("Auto-text scheduler stopped.");
 }
 
-function scheduleAutomatedMessage(channel, item, runExclusive) {
+/**
+ * Handle the custom `a.settime <HHMM> <hours.minutes> <times>` command.
+ * Returns true when the input was a settime command, including invalid usage.
+ *
+ * @param {import('discord.js').Message} message
+ * @param {string} raw
+ */
+export async function handleAutoTextCommand(message, raw) {
+  if (!/^a\.settime(?:\s|$)/i.test(raw)) return false;
+
+  const parts = raw.trim().split(/\s+/);
+  if (parts.length !== 4) {
+    await message.reply(
+      "❌ Usage: `a.settime <start_time> <interval> <times>` (for example, `a.settime 0400 5.5 4`).",
+    );
+    return true;
+  }
+
+  try {
+    const configuredTimes = buildConfiguredTimes(parts[1], parts[2], parts[3]);
+    replaceAutomatedTimes(configuredTimes);
+
+    await message.reply(
+      `⏰ Configured ${configuredTimes.length} reset${configuredTimes.length === 1 ? "" : "s"}: ` +
+        configuredTimes.map(formatTwelveHourTime).join(", "),
+    );
+  } catch (err) {
+    await message.reply(`❌ ${err.message}`);
+  }
+
+  return true;
+}
+
+function buildConfiguredTimes(startTime, interval, countValue) {
+  const startMatch = /^([01]\d|2[0-3])([0-5]\d)$/.exec(startTime);
+  if (!startMatch) {
+    throw new Error(
+      'Invalid start time. Use four-digit 24-hour time, such as "0400" or "1330".',
+    );
+  }
+
+  const intervalMatch = /^(\d+)\.([0-5]?\d)$/.exec(interval);
+  if (!intervalMatch) {
+    throw new Error(
+      'Invalid interval. Use hours.minutes, such as "5.5" for 5 hours 5 minutes or "3.30" for 3 hours 30 minutes.',
+    );
+  }
+
+  const count = Number(countValue);
+  if (!/^\d+$/.test(countValue) || count < 1 || count > MAX_CONFIGURED_TIMES) {
+    throw new Error(
+      `Times must be a whole number from 1 to ${MAX_CONFIGURED_TIMES}.`,
+    );
+  }
+
+  const startMinutes = Number(startMatch[1]) * 60 + Number(startMatch[2]);
+  const intervalMinutes =
+    Number(intervalMatch[1]) * 60 + Number(intervalMatch[2]);
+  if (intervalMinutes === 0) {
+    throw new Error("Interval must be greater than zero minutes.");
+  }
+
+  return Array.from({ length: count }, (_, index) => {
+    const minutes = (startMinutes + intervalMinutes * index) % (24 * 60);
+    const hour = String(Math.floor(minutes / 60)).padStart(2, "0");
+    const minute = String(minutes % 60).padStart(2, "0");
+    return `${hour}:${minute}`;
+  });
+}
+
+function replaceAutomatedTimes(times) {
+  AUTOMATED_MESSAGES[0].times = times;
+  if (!started || stopped || !scheduledChannel || !scheduledRunExclusive) return;
+
+  clearScheduledRuns();
+  for (const item of AUTOMATED_MESSAGES) {
+    scheduleAutomatedMessage(
+      scheduledChannel,
+      item,
+      scheduledRunExclusive,
+      false,
+    );
+  }
+}
+
+function clearScheduledRuns() {
+  for (const id of timeoutIds.splice(0)) {
+    clearTimeout(id);
+  }
+}
+
+function formatTwelveHourTime(time) {
+  const [hourValue, minute] = time.split(":");
+  const hour = Number(hourValue);
+  const period = hour < 12 ? "AM" : "PM";
+  const twelveHour = hour % 12 || 12;
+  return `${twelveHour}:${minute} ${period}`;
+}
+
+function scheduleAutomatedMessage(
+  channel,
+  item,
+  runExclusive,
+  runOnStart = RUN_ON_START,
+) {
   validateAutomatedMessage(item);
 
   const run = () => {
@@ -123,7 +233,7 @@ function scheduleAutomatedMessage(channel, item, runExclusive) {
     });
   };
 
-  if (RUN_ON_START) run();
+  if (runOnStart) run();
 
   for (const time of item.times) {
     scheduleNextRun(time, run, item.name);

@@ -13,7 +13,11 @@ import {
 
 import { config, FILES_DIR, RETURN_DIR } from './config.js';
 import { runClaude, EFFORT_LEVELS, modelSupportsEffort } from './claudeRunner.js';
-import { startAutoText, stopAutoText } from './auto-text.js';
+import {
+  handleAutoTextCommand,
+  startAutoText,
+  stopAutoText,
+} from './auto-text.js';
 
 const DISCORD_FILE_LIMIT = 8 * 1024 * 1024; // 8 MB, the default (non-boosted) upload cap
 const MAX_MESSAGE_LEN = 2000;
@@ -59,7 +63,9 @@ client.on('messageCreate', (message) => {
   const mentioned = client.user && message.mentions.has(client.user.id);
   // The allowed bot can also trigger by saying "AtClaude" without a real mention.
   const namedAtClaude = isAllowedBot && /\batclaude\b/i.test(message.content);
-  if (!isDM && !mentioned && !namedAtClaude) return;
+  const prompt = stripMention(message.content).trim();
+  const isAutoTextCommand = /^a\.settime(?:\s|$)/i.test(prompt);
+  if (!isDM && !mentioned && !namedAtClaude && !isAutoTextCommand) return;
 
   if (!isAllowedBot && config.allowedUserIds.size > 0 && !config.allowedUserIds.has(message.author.id)) {
     return; // silently ignore anyone not on the allow-list
@@ -114,6 +120,8 @@ async function drain() {
 
 async function handleMessage(message) {
   let prompt = stripMention(message.content).trim();
+
+  if (await handleAutoTextCommand(message, prompt)) return;
 
   // c!-prefixed control commands (only when they're the whole message).
   if (prompt.startsWith('c!')) {
@@ -235,6 +243,7 @@ async function handleCommand(message, raw) {
           `- \`c!effort <${EFFORT_LEVELS.join('|')}>\` — set reasoning effort (Sonnet/Opus). No arg = reset.\n` +
           `- \`c!config\` — show current settings.\n` +
           `- \`c!reset\` — start a fresh conversation.\n` +
+          `- \`a.settime <HHMM> <hours.minutes> <times>\` — replace the automatic reset times.\n` +
           `Otherwise just talk to me, and attach files if you like.`,
       );
       return true;
@@ -379,5 +388,3 @@ process.once('SIGINT', shutdown);
 process.once('SIGTERM', shutdown);
 
 client.login(config.token);
-
-
